@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>半导体知识库 RAG 助手</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f0f2f5; height: 100vh; overflow: hidden; }
+
+    /* Auth overlay */
+    #auth-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 200; }
+    #auth-overlay.hidden { display: none; }
+    .auth-card { background: #fff; border-radius: 16px; padding: 44px 40px; width: 380px; box-shadow: 0 16px 48px rgba(0,0,0,.2); }
+    .auth-card h2 { font-size: 1.35rem; color: #1a1a2e; margin-bottom: 6px; text-align: center; }
+    .auth-card .subtitle { font-size: .82rem; color: #999; text-align: center; margin-bottom: 24px; }
+    .auth-tabs { display: flex; gap: 0; margin-bottom: 24px; border-radius: 10px; overflow: hidden; border: 1px solid #e0e0e0; }
+    .auth-tab { flex: 1; padding: 10px 0; text-align: center; cursor: pointer; font-size: .9rem; background: #f5f5f5; color: #666; transition: all .2s; }
+    .auth-tab.active { background: #1a1a2e; color: #fff; }
+    .auth-form { display: flex; flex-direction: column; gap: 14px; }
+    .auth-form input { border: 1.5px solid #e0e0e0; border-radius: 10px; padding: 11px 15px; font-size: .95rem; outline: none; transition: border-color .2s; }
+    .auth-form input:focus { border-color: #1a1a2e; }
+    .auth-form button { background: #1a1a2e; color: #fff; border: none; border-radius: 10px; padding: 12px; font-size: .95rem; cursor: pointer; transition: opacity .2s; margin-top: 4px; font-weight: 500; }
+    .auth-form button:hover { opacity: .85; }
+    .auth-form button:disabled { opacity: .45; cursor: not-allowed; }
+    .auth-error { color: #d32f2f; font-size: .84rem; text-align: center; min-height: 20px; }
+
+    /* Main layout */
+    #app { display: flex; height: 100vh; }
+    #app.hidden { display: none; }
+
+    /* History sidebar */
+    #history-sidebar { width: 260px; background: #fff; border-right: 1px solid #e8e8e8; display: flex; flex-direction: column; flex-shrink: 0; }
+    .history-header { padding: 14px 16px; background: #1a1a2e; color: #fff; display: flex; align-items: center; justify-content: space-between; }
+    .history-header h2 { font-size: .9rem; font-weight: 600; }
+    .history-new-btn { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); border-radius: 6px; padding: 4px 10px; font-size: .78rem; cursor: pointer; transition: all .2s; }
+    .history-new-btn:hover { background: rgba(255,255,255,.25); }
+    #history-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+    .history-item { display: flex; align-items: center; padding: 10px 16px; cursor: pointer; transition: background .15s; border-left: 3px solid transparent; gap: 8px; }
+    .history-item:hover { background: #f5f7fa; }
+    .history-item.active { background: #f0f4ff; border-left-color: #4f8cff; }
+    .history-item .hi-content { flex: 1; min-width: 0; }
+    .history-item .hi-title { font-size: .84rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-item .hi-time { font-size: .72rem; color: #aaa; margin-top: 2px; }
+    .history-item .hi-del { background: none; border: none; color: #c62828; cursor: pointer; font-size: .78rem; opacity: 0; transition: opacity .15s; padding: 2px 4px; flex-shrink: 0; }
+    .history-item:hover .hi-del { opacity: 1; }
+    .history-empty { padding: 24px 16px; text-align: center; color: #bbb; font-size: .84rem; }
+
+    /* Sidebar */
+    #sidebar { width: 420px; background: #fff; border-right: 1px solid #e8e8e8; display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar-header { padding: 16px 20px; background: #1a1a2e; color: #fff; display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-header h2 { font-size: .95rem; font-weight: 600; }
+    .sidebar-section { padding: 14px 20px; border-bottom: 1px solid #f0f0f0; }
+    .sidebar-section h3 { font-size: .82rem; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; font-weight: 600; }
+    .sidebar-section h3 .icon { margin-right: 4px; }
+
+    /* Workflow stepper */
+    .wf-node { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; margin-bottom: 4px; font-size: .84rem; color: #999; transition: all .3s; border: 1px solid transparent; }
+    .wf-node .dot { width: 10px; height: 10px; border-radius: 50%; background: #d0d0d0; flex-shrink: 0; transition: all .3s; }
+    .wf-node.active { color: #1a1a2e; background: #f0f4ff; border-color: #c5d5f8; font-weight: 500; }
+    .wf-node.active .dot { background: #4f8cff; box-shadow: 0 0 8px rgba(79,140,255,.5); animation: pulse 1.2s infinite; }
+    .wf-node.done { color: #555; }
+    .wf-node.done .dot { background: #34c759; }
+    .wf-node .time { margin-left: auto; font-size: .75rem; color: #bbb; }
+
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 4px rgba(79,140,255,.3); } 50% { box-shadow: 0 0 14px rgba(79,140,255,.7); } }
+
+    /* Sources */
+    .source-card { background: #f8f9fb; border: 1px solid #eef0f4; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; font-size: .82rem; }
+    .source-card .src-title { font-weight: 600; color: #1a1a2e; margin-bottom: 3px; }
+    .source-card .src-preview { color: #777; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+    /* Doc list in sidebar */
+    .upload-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    #doc-file-input { font-size: .82rem; flex: 1; min-width: 0; max-width: 180px; }
+    .sm-btn { background: #1a1a2e; color: #fff; border: none; border-radius: 6px; padding: 5px 12px; font-size: .8rem; cursor: pointer; transition: opacity .2s; white-space: nowrap; }
+    .sm-btn:hover { opacity: .85; }
+    .sm-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .upload-msg { font-size: .78rem; color: #888; margin-top: 6px; }
+    .mini-doc-list { max-height: 160px; overflow-y: auto; margin-top: 8px; }
+    .mini-doc-item { display: flex; align-items: center; justify-content: space-between; font-size: .78rem; padding: 4px 0; border-bottom: 1px solid #f5f5f5; }
+    .mini-doc-item .del-btn { background: none; border: none; color: #c62828; cursor: pointer; font-size: .78rem; }
+
+    /* Main chat area */
+    #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e8e8e8; }
+    header h1 { font-size: 1.05rem; font-weight: 700; color: #1a1a2e; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .user-badge { font-size: .8rem; display: flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 20px; background: #f0f4ff; color: #1a1a2e; font-weight: 500; }
+    .role-tag { font-size: .7rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .role-tag.admin { background: #f59e0b; color: #1a1a2e; }
+    .role-tag.user  { background: #3b82f6; color: #fff; }
+
+    /* Toolbar */
+    #toolbar { display: flex; align-items: center; gap: 10px; padding: 9px 24px; border-bottom: 1px solid #e8e8e8; background: #fafafa; }
+    .mode-group { display: flex; border-radius: 8px; overflow: hidden; border: 1px solid #d0d0d0; }
+    .mode-btn { padding: 5px 14px; font-size: .82rem; cursor: pointer; background: #fff; color: #555; border: none; transition: all .2s; white-space: nowrap; }
+    .mode-btn + .mode-btn { border-left: 1px solid #d0d0d0; }
+    .mode-btn.active { background: #1a1a2e; color: #fff; }
+    .toolbar-btn { background: #fff; border: 1px solid #d0d0d0; color: #333; padding: 5px 14px; border-radius: 8px; cursor: pointer; font-size: .82rem; transition: all .2s; }
+    .toolbar-btn:hover { background: #f0f0f0; }
+    .toolbar-btn.danger { color: #c62828; border-color: #fcc; background: #fff5f5; margin-left: auto; }
+    .toolbar-btn.danger:hover { background: #fee; }
+
+    /* Messages */
+    #messages { flex: 1; overflow-y: auto; padding: 20px 24px 8px; display: flex; flex-direction: column; gap: 16px; }
+    .message { max-width: 85%; padding: 12px 18px; border-radius: 14px; line-height: 1.7; font-size: .93rem; animation: fadeIn .25s ease; }
+    .message.user { align-self: flex-end; background: #1a1a2e; color: #fff; border-bottom-right-radius: 4px; }
+    .message.assistant { align-self: flex-start; background: #f1f3f5; color: #1a1a2e; border-bottom-left-radius: 4px; }
+    .message.assistant p { margin: 6px 0; }
+    .message.assistant p:first-child { margin-top: 0; }
+    .message.assistant p:last-child { margin-bottom: 0; }
+    .message.assistant code { background: #e0e4ea; padding: 2px 6px; border-radius: 4px; font-size: .85em; }
+    .message.assistant pre { background: #1e1e2e; color: #cdd6f4; padding: 14px 18px; border-radius: 8px; overflow-x: auto; margin: 8px 0; font-size: .82rem; line-height: 1.5; }
+    .message.assistant pre code { background: none; padding: 0; color: inherit; }
+    .message.assistant ul, .message.assistant ol { padding-left: 22px; margin: 6px 0; }
+    .message.assistant table { border-collapse: collapse; margin: 8px 0; font-size: .85rem; width: 100%; }
+    .message.assistant th, .message.assistant td { border: 1px solid #d0d0d0; padding: 6px 10px; text-align: left; }
+    .message.assistant th { background: #e8ecf0; font-weight: 600; }
+    .message.assistant blockquote { border-left: 3px solid #4f8cff; padding-left: 12px; margin: 6px 0; color: #666; }
+    .message.thinking { color: #888; font-style: italic; }
+
+    /* Sources in messages */
+    .inline-sources { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .src-chip { background: #fff; border: 1px solid #e0e0e0; border-radius: 20px; padding: 3px 12px; font-size: .76rem; color: #555; cursor: pointer; transition: all .2s; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .src-chip:hover { background: #f0f4ff; border-color: #4f8cff; color: #1a1a2e; }
+
+    .msg-meta { font-size: .72rem; color: #aaa; margin-top: 6px; display: flex; gap: 8px; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Input */
+    #input-area { display: flex; gap: 10px; padding: 16px 24px; border-top: 1px solid #e8e8e8; background: #fff; }
+    #question { flex: 1; resize: none; border: 1.5px solid #e0e0e0; border-radius: 12px; padding: 11px 16px; font-size: .93rem; font-family: inherit; outline: none; transition: border-color .2s; }
+    #question:focus { border-color: #1a1a2e; }
+    #send { background: #1a1a2e; color: #fff; border: none; border-radius: 12px; padding: 0 26px; font-size: .93rem; cursor: pointer; transition: opacity .2s; font-weight: 500; }
+    #send:hover { opacity: .85; }
+    #send:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Toast */
+    .toast { position: fixed; top: 20px; right: 20px; background: #1a1a2e; color: #fff; padding: 10px 20px; border-radius: 10px; font-size: .85rem; z-index: 300; animation: fadeIn .3s ease; opacity: 0; transition: opacity .3s; }
+    .toast.show { opacity: 1; }
+    .toast.error { background: #c62828; }
+  </style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h2>半导体知识库 RAG 助手</h2>
+    <p class="subtitle">LangGraph + Milvus + DeepSeek</p>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">登录</div>
+      <div class="auth-tab" id="tab-register" onclick="switchTab('register')">注册</div>
+    </div>
+    <form class="auth-form" id="auth-form" onsubmit="submitAuth(event)">
+      <input type="text" id="auth-username" placeholder="用户名" autocomplete="username" required>
+      <input type="password" id="auth-password" placeholder="密码" autocomplete="current-password" required>
+      <div class="auth-error" id="auth-error"></div>
+      <button type="submit" id="auth-submit-btn">登录</button>
+    </form>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="app" class="hidden">
+  <!-- History sidebar -->
+  <div id="history-sidebar">
+    <div class="history-header">
+      <h2>历史会话</h2>
+      <button class="history-new-btn" onclick="newChat()">+ 新对话</button>
+    </div>
+    <div id="history-list">
+      <div class="history-empty">暂无历史会话</div>
+    </div>
+  </div>
+
+  <!-- Sidebar: Workflow + Sources -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <h2>执行流程</h2>
+      <span style="font-size:.75rem;opacity:.7">GraphRAG v2</span>
+    </div>
+    <div class="sidebar-section">
+      <h3><span class="icon">⚙</span> 工作流节点</h3>
+      <div id="workflow-steps">
+        <div class="wf-node" data-node="__start__"><span class="dot"></span><span>开始处理</span></div>
+        <div class="wf-node" data-node="route_question"><span class="dot"></span><span>问题分析与路由</span></div>
+        <div class="wf-node" data-node="retrieve"><span class="dot"></span><span>知识库检索</span></div>
+        <div class="wf-node" data-node="web_search"><span class="dot"></span><span>网络搜索</span></div>
+        <div class="wf-node" data-node="grade_documents"><span class="dot"></span><span>文档相关性评估</span></div>
+        <div class="wf-node" data-node="transform_query"><span class="dot"></span><span>查询优化重写</span></div>
+        <div class="wf-node" data-node="generate"><span class="dot"></span><span>回答生成</span></div>
+      </div>
+    </div>
+    <div class="sidebar-section" id="sources-section" style="display:none">
+      <h3><span class="icon">📄</span> 引用来源</h3>
+      <div id="sources-list"></div>
+    </div>
+    <div class="sidebar-section" id="admin-section" style="display:none">
+      <h3><span class="icon">📁</span> 文档管理</h3>
+      <div class="upload-row">
+        <input type="file" id="doc-file-input" accept=".md,.txt">
+        <button class="sm-btn" id="upload-btn" onclick="uploadDoc()">上传</button>
+      </div>
+      <div class="upload-msg" id="upload-msg"></div>
+      <div class="mini-doc-list" id="mini-doc-list"></div>
+    </div>
+  </div>
+
+  <!-- Main chat -->
+  <div id="main">
+    <header>
+      <h1>半导体知识库 RAG 助手</h1>
+      <div class="header-right">
+        <div class="user-badge" id="user-badge">
+          <span id="username-display">--</span>
+          <span class="role-tag" id="role-tag">--</span>
+        </div>
+      </div>
+    </header>
+
+    <div id="toolbar">
+      <span style="font-size:.82rem;color:#555">检索模式</span>
+      <div class="mode-group">
+        <button class="mode-btn active" data-mode="auto" onclick="setMode('auto')">自动路由</button>
+        <button class="mode-btn" data-mode="vectorstore" onclick="setMode('vectorstore')">知识库</button>
+        <button class="mode-btn" data-mode="web_search" onclick="setMode('web_search')">网络搜索</button>
+      </div>
+      <button class="toolbar-btn" onclick="newChat()">新对话</button>
+      <button class="toolbar-btn danger" onclick="logout()">退出登录</button>
+    </div>
+
+    <div id="messages">
+      <div class="message assistant">你好！我是<strong>半导体知识库助手</strong>，专注于半导体材料、芯片制造、光刻技术等领域。<br><br>支持三种检索模式：<br><b>自动路由</b> — AI 自动选择知识库或网络搜索<br><b>知识库</b> — 仅从企业知识库检索<br><b>网络搜索</b> — 使用互联网搜索</div>
+    </div>
+
+    <div id="input-area">
+      <textarea id="question" placeholder="请输入你的问题… (Enter 发送，Shift+Enter 换行)" rows="2"></textarea>
+      <button id="send" onclick="sendMessage()">发送</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

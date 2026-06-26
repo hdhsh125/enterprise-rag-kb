@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment variables (contains secrets)
+.env
+!.env.example
+
+# Database files
+*.db
+*.db-journal
+milvus.db/
+milvus_lite.db/
+
+# Generated data
+RAG_PROJECT/datas/output/
+
+# Claude settings
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Model cache
+models_cache/
+
+# Personal documents
+简历信息整理/
+
+# PDF documents (may contain personal info)
+*.pdf

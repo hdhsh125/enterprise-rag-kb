@@ -1,0 +1,38 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  background: #f0f2f5;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+/* Session sidebar hover effect */
+.session-item:hover { background: #f5f7fa !important; }
+.session-item:hover .del-session-btn { opacity: 1 !important; }
+
+/* Workflow node pulse animation */
+@keyframes wf-pulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(79, 140, 255, 0.3); }
+  50%       { box-shadow: 0 0 14px rgba(79, 140, 255, 0.7); }
+}
+
+/* Message fade-in */
+@keyframes msg-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.msg-enter { animation: msg-fade 0.22s ease both; }
