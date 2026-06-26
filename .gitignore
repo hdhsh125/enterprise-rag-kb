@@ -4,6 +4,9 @@ __pycache__/
 *$py.class
 *.so
 
+# Node
+node_modules/
+
 # Virtual Environment
 .venv/
 venv/
@@ -47,3 +50,6 @@ models_cache/
 
 # PDF documents (may contain personal info)
 *.pdf
+
+# API config notes (contains key info)
+deepseekapi配置说明.txt
