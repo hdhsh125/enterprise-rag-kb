@@ -300,26 +300,6 @@ RAG_PROJECT/
 
 ---
 
-## 运行截图
-
-> **以下截图请在运行项目后自行替换**——这对仓库可信度至关重要。
->
-> 建议截图：
-> 1. 登录页面
-> 2. 问答界面（含工作流可视化面板）
-> 3. 文档管理页面
-> 4. 基础模式 vs 高级模式回答对比
-
-| 登录页面 | 问答界面 |
-|----------|----------|
-| ![Login](docs/screenshots/login.png) | ![Chat](docs/screenshots/chat.png) |
-
-| 文档管理 | 工作流可视化 |
-|----------|-------------|
-| ![Docs](docs/screenshots/documents.png) | ![Workflow](docs/screenshots/workflow.png) |
-
----
-
 ## Benchmark
 
 文档入库吞吐量测试（Milvus Lite，CPU 模式，BGE-small-zh-v1.5 本地推理）：
