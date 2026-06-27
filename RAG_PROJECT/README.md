@@ -8,7 +8,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.12-blue" />
   <img src="https://img.shields.io/badge/FastAPI-0.115+-009688" />
-  <img src="https://img.shields.io/badge/React-19+-61dafb" />
+  <img src="https://img.shields.io/badge/React-18+-61dafb" />
   <img src="https://img.shields.io/badge/LangGraph-0.2+-orange" />
   <img src="https://img.shields.io/badge/Milvus-2.4+-00b4d8" />
 </p>
@@ -104,7 +104,7 @@ Milvus 同时执行 Dense 向量检索与 Sparse BM25 检索，通过 RRF（Reci
 | 向量数据库 | Milvus — Dense + Sparse 混合检索，RRF 排序 |
 | RAG 框架 | LangGraph + LangChain |
 | 后端 | FastAPI + Python 3.12，JWT + bcrypt 认证，SQLite 持久化 |
-| 前端 | React 19 + TypeScript + Ant Design + Zustand |
+| 前端 | React 18 + TypeScript + Ant Design + Zustand |
 | Web 搜索 | Tavily API（高级模式联网兜底） |
 
 ---
@@ -274,7 +274,7 @@ RAG_PROJECT/
 │   ├── security.py          # JWT + bcrypt
 │   ├── log_utils.py         # loguru 日志
 │   └── env_utils.py         # 环境变量工具
-├── frontend/                # React 19 + TypeScript 前端
+├── frontend/                # React 18 + TypeScript 前端
 │   ├── src/
 │   │   ├── store/           # Zustand (authStore, chatStore)
 │   │   ├── api/client.ts    # API 客户端 + SSE 流
@@ -294,10 +294,9 @@ RAG_PROJECT/
 
 ---
 
-## 默认账号
+## 管理员账号
 
-- 用户名：`admin`
-- 密码：`Admin@123456`
+首次启动时自动创建管理员账号，用户名与密码通过 `.env` 中 `AUTH_SECRET_KEY` 配置控制。默认配置见 `.env.example`。
 
 ---
 
